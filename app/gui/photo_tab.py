@@ -243,6 +243,8 @@ class PhotoTab(ctk.CTkFrame):
         done = 0
         moved = 0
         duplicates = 0
+        errors = 0
+        first_error = None
         entries: list[Entry] = []
         for row in rows:
             for p in row.plans:
@@ -253,24 +255,33 @@ class PhotoTab(ctk.CTkFrame):
                         duplicates += 1
                     else:
                         moved += 1
-                except Exception:  # noqa: BLE001 — пропускаем сбойный файл
-                    pass
+                except Exception as exc:  # noqa: BLE001 — считаем сбой, но продолжаем
+                    errors += 1
+                    if first_error is None:
+                        first_error = str(exc)
                 done += 1
                 self.after(0, self._update_progress, done, total, p.source.name)
             self.after(0, row.mark_done)
         if entries and self.on_batch:
             self.after(0, self.on_batch, "photo", action, entries)
-        self.after(0, self._apply_done, moved, duplicates)
+        self.after(0, self._apply_done, moved, duplicates, errors, first_error)
 
-    def _apply_done(self, moved, duplicates):
+    def _apply_done(self, moved, duplicates, errors, first_error):
         self._busy = False
         self.scan_button.configure(state="normal")
         self.apply_button.configure(state="normal")
         verb = "скопировано" if self._cfg().get("action") == "copy" else "перемещено"
-        text = f"Готово: {verb} {moved} фото."
+        parts = [f"{verb} {moved}"]
         if duplicates:
-            text += f" Пропущено дубликатов: {duplicates}."
-        self._set_status(text)
+            parts.append(f"дубликатов {duplicates}")
+        if errors:
+            parts.append(f"ошибок {errors}")
+        text = "Готово: " + ", ".join(parts) + " фото."
+        if moved == 0 and duplicates and not errors:
+            text += " Все фото уже были в папке назначения."
+        if first_error:
+            text += f" Первая ошибка: {first_error}"
+        self._set_status(text, error=bool(errors))
         self.progress_label.configure(text="")
         self._update_summary()
 

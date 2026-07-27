@@ -376,6 +376,7 @@ class MainWindow(ctk.CTk):
         action = self.config_data.get("action", "copy")
         moved = 0
         duplicates = 0
+        errors = 0
         entries: list[Entry] = []
         for row in rows:
             try:
@@ -387,19 +388,26 @@ class MainWindow(ctk.CTk):
                 else:
                     moved += 1
             except Exception as exc:  # noqa: BLE001
+                errors += 1
                 self.after(0, row.mark_error, str(exc))
         if entries:
             self.after(0, self._record_batch, "docs", action, entries)
-        self.after(0, self._apply_done, moved, duplicates, len(rows))
+        self.after(0, self._apply_done, moved, duplicates, errors, len(rows))
 
-    def _apply_done(self, moved, duplicates, total):
+    def _apply_done(self, moved, duplicates, errors, total):
         self.scan_button.configure(state="normal")
         self.apply_button.configure(state="normal")
+        self.bulk_button.configure(state="normal")
         verb = "скопировано" if self.config_data.get("action") == "copy" else "перемещено"
-        text = f"Готово: {verb} {moved} из {total}."
+        parts = [f"{verb} {moved} из {total}"]
         if duplicates:
-            text += f" Пропущено дубликатов: {duplicates}."
-        self._set_status(text)
+            parts.append(f"дубликатов {duplicates}")
+        if errors:
+            parts.append(f"ошибок {errors}")
+        text = "Готово: " + ", ".join(parts) + "."
+        if moved == 0 and duplicates and not errors:
+            text += " Эти файлы уже были в папке назначения."
+        self._set_status(text, error=bool(errors))
         self._update_summary()
 
     def _set_status(self, text, error=False):
