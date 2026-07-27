@@ -5,7 +5,7 @@ description = "Десктопное приложение для умной ло�
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Local AI Organizer" }]
+authors = [{ name = "Ксения Будкина", email = "obscure.74@yandex.ru" }]
 keywords = ["ollama", "file-organizer", "customtkinter", "local-ai", "automation"]
 dependencies = [
     "customtkinter>=5.2.2",
