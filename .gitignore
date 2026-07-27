@@ -1,0 +1,22 @@
+# Виртуальное окружение
+.venv/
+venv/
+
+# Python-кэш
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Локальные данные приложения (не должны попадать в репозиторий)
+config.json
+history.json
+Organized/
+
+# Системные файлы ОС и IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

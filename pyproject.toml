@@ -1,0 +1,38 @@
+[project]
+name = "local-ai-organizer"
+version = "0.1.0"
+description = "Десктопное приложение для умной локальной сортировки файлов с помощью Ollama"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Local AI Organizer" }]
+keywords = ["ollama", "file-organizer", "customtkinter", "local-ai", "automation"]
+dependencies = [
+    "customtkinter>=5.2.2",
+    "requests>=2.31.0",
+    "pdfplumber>=0.11.0",
+    "python-docx>=1.1.2",
+    "Pillow>=10.3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+ocr = ["pytesseract>=0.3.13"]
+
+[project.gui-scripts]
+local-ai-organizer = "app.gui.main_window:run"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# E/F — pyflakes+pycodestyle, I — сортировка импортов, UP — модернизация синтаксиса,
+# B — типичные баги, SIM — упрощения
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]  # длину строк контролируем вручную
