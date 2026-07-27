@@ -68,7 +68,7 @@ class MainWindow(ctk.CTk):
         # Верхняя панель: статус Ollama + кнопки
         top = ctk.CTkFrame(parent)
         top.grid(row=0, column=0, sticky="ew", padx=4, pady=(4, 8))
-        top.grid_columnconfigure(3, weight=1)
+        top.grid_columnconfigure(4, weight=1)
 
         ctk.CTkButton(
             top, text="Проверить Ollama", width=150, command=self._check_ollama
@@ -79,14 +79,21 @@ class MainWindow(ctk.CTk):
         )
         self.scan_button.grid(row=0, column=1, padx=6, pady=8)
 
+        self.bulk_button = ctk.CTkButton(
+            top, text="Изменить отмеченные", width=170,
+            command=self._bulk_edit, state="disabled",
+            fg_color=("gray70", "gray30"), hover_color=("gray60", "gray38"),
+        )
+        self.bulk_button.grid(row=0, column=2, padx=6, pady=8)
+
         self.apply_button = ctk.CTkButton(
             top, text="Применить отмеченные", width=180,
             command=self._start_apply, state="disabled",
         )
-        self.apply_button.grid(row=0, column=2, padx=6, pady=8)
+        self.apply_button.grid(row=0, column=3, padx=6, pady=8)
 
         self.status_label = ctk.CTkLabel(top, text="Готово к работе.", anchor="w")
-        self.status_label.grid(row=0, column=3, sticky="ew", padx=10)
+        self.status_label.grid(row=0, column=4, sticky="ew", padx=10)
 
         # Панель прогресса
         progress_frame = ctk.CTkFrame(parent)
@@ -246,6 +253,7 @@ class MainWindow(ctk.CTk):
         self._clear_results()
         self.scan_button.configure(text="Остановить", command=self._request_stop)
         self.apply_button.configure(state="disabled")
+        self.bulk_button.configure(state="disabled")
         self._set_status("Сканирование…")
 
         threading.Thread(target=self._scan_worker, daemon=True).start()
@@ -299,6 +307,7 @@ class MainWindow(ctk.CTk):
         self.progress_label.configure(text="")
         if plans:
             self.apply_button.configure(state="normal")
+            self.bulk_button.configure(state="normal")
 
     def _render_results(self, plans):
         for plan in plans:
@@ -312,6 +321,18 @@ class MainWindow(ctk.CTk):
     def _edit_row(self, row):
         """Открывает окно правки целевой папки и имени файла для строки."""
         EditDialog(self, row)
+
+    def _bulk_edit(self):
+        """Массовая правка: отправить все отмеченные файлы в общую папку."""
+        rows = [r for r in self.rows if r.checkbox_var.get() and not r.done]
+        if not rows:
+            self._set_status("Отметьте файлы галочками для массовой правки.", error=True)
+            return
+        BulkEditDialog(self, rows, self.config_data, on_done=self._after_bulk_edit)
+
+    def _after_bulk_edit(self, count):
+        self._set_status(f"Изменено назначение для {count} файлов.")
+        self._update_summary()
 
     def _clear_results(self):
         for row in self.rows:
@@ -641,6 +662,92 @@ class EditDialog(ctk.CTkToplevel):
         if not folder or not name:
             return
         self.row.update_target(Path(folder) / name)
+        self.destroy()
+
+
+class BulkEditDialog(ctk.CTkToplevel):
+    """Массовая правка: отправить все отмеченные файлы в общую папку.
+
+    Имена файлов сохраняются (включая сгенерированные ИИ), меняется только
+    папка назначения. Кнопки-категории быстро подставляют типовые пути.
+    """
+
+    def __init__(self, master, rows: list[ResultRow], config: dict, on_done=None):
+        super().__init__(master)
+        self.rows = rows
+        self.config = config
+        self.on_done = on_done
+        self.title("Массовая правка")
+        self.geometry("620x300")
+        self.resizable(False, False)
+        self.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            self, text=f"Отмечено файлов: {len(rows)}",
+            font=ctk.CTkFont(size=14, weight="bold")).grid(
+            row=0, column=0, columnspan=3, sticky="w", padx=14, pady=(16, 4))
+        ctk.CTkLabel(
+            self, text="Все они отправятся в одну папку (имена сохранятся).",
+            text_color=("gray30", "gray70")).grid(
+            row=1, column=0, columnspan=3, sticky="w", padx=14, pady=(0, 8))
+
+        ctk.CTkLabel(self, text="Папка назначения:").grid(
+            row=2, column=0, sticky="w", padx=14, pady=8)
+        self.folder_entry = ctk.CTkEntry(self)
+        self.folder_entry.grid(row=2, column=1, sticky="ew", padx=6, pady=8)
+        ctk.CTkButton(self, text="Обзор…", width=80, command=self._browse).grid(
+            row=2, column=2, padx=(6, 14))
+
+        # Быстрые кнопки категорий
+        ctk.CTkLabel(self, text="Быстрый выбор:").grid(
+            row=3, column=0, sticky="nw", padx=14, pady=8)
+        quick = ctk.CTkScrollableFrame(self, height=70, orientation="horizontal",
+                                       fg_color="transparent")
+        quick.grid(row=3, column=1, columnspan=2, sticky="ew", padx=6, pady=4)
+        for label, folder in self._quick_targets().items():
+            ctk.CTkButton(
+                quick, text=label, width=110, height=28,
+                fg_color=("gray75", "gray30"), hover_color=("gray65", "gray40"),
+                command=lambda f=folder: self._set_folder(f)).pack(side="left", padx=3)
+
+        buttons = ctk.CTkFrame(self, fg_color="transparent")
+        buttons.grid(row=4, column=0, columnspan=3, sticky="e", padx=14, pady=(16, 12))
+        ctk.CTkButton(buttons, text="Отмена", width=100, fg_color=("gray70", "gray30"),
+                      command=self.destroy).pack(side="left", padx=6)
+        ctk.CTkButton(buttons, text="Применить ко всем", width=160, command=self._save).pack(side="left")
+
+        self.transient(master)
+        self.after(100, self.grab_set)
+
+    def _quick_targets(self) -> dict[str, Path]:
+        """Ярлыки папок: рабочее/личное + основные категории типовых файлов."""
+        dest = self.config["destinations"]
+        targets: dict[str, Path] = {
+            "Рабочее": Path(dest["work_root"]),
+            "Личное": Path(dest["personal_root"]),
+        }
+        files_root = Path(dest.get("files_root", dest["personal_root"]))
+        for category in ("Документы", "Таблицы", "Видео", "Аудио", "Изображения", "Архивы"):
+            targets[category] = files_root / category
+        return targets
+
+    def _set_folder(self, folder: Path):
+        self.folder_entry.delete(0, "end")
+        self.folder_entry.insert(0, str(folder))
+
+    def _browse(self):
+        folder = filedialog.askdirectory(initialdir=self.folder_entry.get() or str(Path.home()))
+        if folder:
+            self._set_folder(Path(folder))
+
+    def _save(self):
+        folder = self.folder_entry.get().strip()
+        if not folder:
+            return
+        for row in self.rows:
+            row.update_target(Path(folder) / row.plan.target.name)
+        if self.on_done:
+            self.on_done(len(self.rows))
         self.destroy()
 
 
