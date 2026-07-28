@@ -17,6 +17,7 @@ from ..core import config as config_module
 from ..core import filetypes, organizer, scanner
 from ..core.ai_client import OllamaClient
 from ..core.history import Entry, HistoryStore
+from .duplicates_tab import DuplicatesTab
 from .faces_tab import FacesTab
 from .photo_tab import PhotoTab
 from .search_tab import SearchTab
@@ -46,6 +47,7 @@ class MainWindow(ctk.CTk):
         self.tabs.add("Файлы")
         self.tabs.add("Фото")
         self.tabs.add("Лица")
+        self.tabs.add("Дубли")
         self.tabs.add("Поиск")
         self.tabs.add("История")
         self.tabs.add("Настройки")
@@ -58,6 +60,10 @@ class MainWindow(ctk.CTk):
         self.faces_tab = FacesTab(
             self.tabs.tab("Лица"), self.config_data, on_batch=self._record_batch)
         self.faces_tab.pack(fill="both", expand=True)
+
+        # Поиск визуальных дублей фотографий
+        self.duplicates_tab = DuplicatesTab(self.tabs.tab("Дубли"), self.config_data)
+        self.duplicates_tab.pack(fill="both", expand=True)
 
         # Поиск по разложенным файлам
         self.search_tab = SearchTab(self.tabs.tab("Поиск"), self.config_data)
