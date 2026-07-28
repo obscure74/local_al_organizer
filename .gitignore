@@ -14,6 +14,7 @@ __pycache__/
 config.json
 history.json
 people.json
+index.db
 Organized/
 
 # ONNX-модели распознавания лиц (~39 МБ) — скачиваются приложением

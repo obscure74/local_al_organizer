@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import contextlib
 import threading
 from pathlib import Path
 from tkinter import filedialog
@@ -14,7 +15,7 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 from ..core import config as config_module
-from ..core import filetypes, organizer, scanner
+from ..core import filetypes, index, organizer, scanner
 from ..core.ai_client import OllamaClient
 from ..core.history import Entry, HistoryStore
 from .duplicates_tab import DuplicatesTab
@@ -37,6 +38,7 @@ class MainWindow(ctk.CTk):
         self.config_data = config_module.load_config()
         ctk.set_appearance_mode(self.config_data.get("appearance", "System"))
         self.history = HistoryStore()
+        self.metadata_index = index.MetadataIndex()
         self.plans: list[organizer.MovePlan] = []
         self.rows: list[ResultRow] = []
         self._scanning = False
@@ -65,8 +67,9 @@ class MainWindow(ctk.CTk):
         self.duplicates_tab = DuplicatesTab(self.tabs.tab("Дубли"), self.config_data)
         self.duplicates_tab.pack(fill="both", expand=True)
 
-        # Поиск по разложенным файлам
-        self.search_tab = SearchTab(self.tabs.tab("Поиск"), self.config_data)
+        # Поиск по разложенным файлам (по имени и по метаданным из индекса)
+        self.search_tab = SearchTab(
+            self.tabs.tab("Поиск"), self.config_data, self.metadata_index)
         self.search_tab.pack(fill="both", expand=True)
 
         # Модуль 2: вкладка фотографий (сообщает о применённых пакетах в историю)
@@ -392,11 +395,16 @@ class MainWindow(ctk.CTk):
         duplicates = 0
         errors = 0
         entries: list[Entry] = []
+        records: list[index.Record] = []
         for row in rows:
             try:
                 status, final = organizer.apply(row.plan, action=action)
                 self.after(0, row.mark_done, status, final)
                 entries.append(Entry(status=status, source=str(row.plan.source), target=str(final)))
+                # Сохраняем то, что распознала модель, — потом по этому ищем
+                records.append(index.record_from_classification(
+                    final, row.plan.classification,
+                    category=filetypes.category_for(final)))
                 if status == organizer.STATUS_DUPLICATE:
                     duplicates += 1
                 else:
@@ -404,6 +412,9 @@ class MainWindow(ctk.CTk):
             except Exception as exc:  # noqa: BLE001
                 errors += 1
                 self.after(0, row.mark_error, str(exc))
+        if records:
+            with contextlib.suppress(Exception):
+                self.metadata_index.add_many(records)
         if entries:
             self.after(0, self._record_batch, "docs", action, entries)
         self.after(0, self._apply_done, moved, duplicates, errors, len(rows))
