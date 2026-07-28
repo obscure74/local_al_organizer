@@ -13,7 +13,12 @@ __pycache__/
 # Локальные данные приложения (не должны попадать в репозиторий)
 config.json
 history.json
+people.json
 Organized/
+
+# ONNX-модели распознавания лиц (~39 МБ) — скачиваются приложением
+models/*.onnx
+models/*.part
 
 # Системные файлы ОС и IDE
 .DS_Store

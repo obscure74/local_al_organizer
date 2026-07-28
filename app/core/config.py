@@ -58,6 +58,20 @@ DEFAULT_CONFIG: dict = {
             ".webp", ".gif", ".heic",
         ],
     },
+    # --- Распознавание лиц ---
+    "faces": {
+        # Откуда брать фото для разбора по людям
+        "source_folder": "",
+        # Куда раскладывать: <dest_root>/<Имя человека>/
+        "dest_root": str(Path(os.path.expanduser("~")) / "Organized" / "Люди"),
+        "recursive": True,
+        # "move" или "copy" (для лиц безопаснее copy: одно фото — несколько людей)
+        "action": "copy",
+        # Складывать фото без людей в отдельную папку "Без_людей"
+        "separate_no_faces": True,
+        # Порог сходства: выше — строже (меньше ложных совпадений)
+        "threshold": 0.363,
+    },
 }
 
 

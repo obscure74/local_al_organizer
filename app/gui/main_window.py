@@ -17,6 +17,7 @@ from ..core import config as config_module
 from ..core import filetypes, organizer, scanner
 from ..core.ai_client import OllamaClient
 from ..core.history import Entry, HistoryStore
+from .faces_tab import FacesTab
 from .photo_tab import PhotoTab
 from .search_tab import SearchTab
 from .summary_dialog import SummaryDialog
@@ -44,6 +45,7 @@ class MainWindow(ctk.CTk):
         self.tabs.pack(fill="both", expand=True, padx=12, pady=12)
         self.tabs.add("Файлы")
         self.tabs.add("Фото")
+        self.tabs.add("Лица")
         self.tabs.add("Поиск")
         self.tabs.add("История")
         self.tabs.add("Настройки")
@@ -51,6 +53,11 @@ class MainWindow(ctk.CTk):
         self._build_docs_tab(self.tabs.tab("Файлы"))
         self._build_settings_tab(self.tabs.tab("Настройки"))
         self._build_history_tab(self.tabs.tab("История"))
+
+        # Распознавание лиц
+        self.faces_tab = FacesTab(
+            self.tabs.tab("Лица"), self.config_data, on_batch=self._record_batch)
+        self.faces_tab.pack(fill="both", expand=True)
 
         # Поиск по разложенным файлам
         self.search_tab = SearchTab(self.tabs.tab("Поиск"), self.config_data)
@@ -462,7 +469,8 @@ class MainWindow(ctk.CTk):
         row.pack(fill="x", padx=2, pady=3)
         row.grid_columnconfigure(1, weight=1)
 
-        module_name = "Файлы" if batch.module == "docs" else "Фото"
+        module_name = {"docs": "Файлы", "photo": "Фото", "faces": "Лица"}.get(
+            batch.module, batch.module)
         verb = "скопировано" if batch.action == "copy" else "перемещено"
         title = f"{batch.when()}  ·  {module_name}  ·  {verb} {batch.moved_count}"
         ctk.CTkLabel(row, text=title, anchor="w").grid(
