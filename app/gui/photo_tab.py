@@ -13,6 +13,7 @@ import customtkinter as ctk
 
 from ..core import config as config_module
 from ..core import photo_organizer
+from .summary_dialog import SummaryDialog
 
 _ROW_SELECTED = ("#dbeafe", "#1e3a5f")
 _ROW_NORMAL = ("gray92", "gray16")
@@ -284,6 +285,11 @@ class PhotoTab(ctk.CTkFrame):
         self._set_status(text, error=bool(errors))
         self.progress_label.configure(text="")
         self._update_summary()
+
+        SummaryDialog(
+            self.winfo_toplevel(), action=self._cfg().get("action", "copy"),
+            moved=moved, duplicates=duplicates, errors=errors,
+            dest_folder=Path(self._cfg()["dest_root"]), first_error=first_error or "")
 
 
 class GroupRow(ctk.CTkFrame):

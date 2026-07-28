@@ -19,6 +19,7 @@ from ..core.ai_client import OllamaClient
 from ..core.history import Entry, HistoryStore
 from .photo_tab import PhotoTab
 from .search_tab import SearchTab
+from .summary_dialog import SummaryDialog
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -409,6 +410,12 @@ class MainWindow(ctk.CTk):
             text += " Эти файлы уже были в папке назначения."
         self._set_status(text, error=bool(errors))
         self._update_summary()
+
+        dest = self.config_data["destinations"]
+        SummaryDialog(
+            self, action=self.config_data.get("action", "copy"),
+            moved=moved, duplicates=duplicates, errors=errors,
+            dest_folder=Path(dest.get("files_root") or dest["work_root"]))
 
     def _set_status(self, text, error=False):
         color = "#d9534f" if error else ("gray70", "gray30")
