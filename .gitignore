@@ -14,11 +14,13 @@ __pycache__/
 config.json
 history.json
 people.json
+categories.json
 index.db
 Organized/
 
-# ONNX-модели распознавания лиц (~39 МБ) — скачиваются приложением
+# ONNX-модели распознавания (лица ~39 МБ, CLIP ~150 МБ) — скачиваются приложением
 models/*.onnx
+models/*.json
 models/*.part
 
 # Системные файлы ОС и IDE

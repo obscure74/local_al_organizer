@@ -21,6 +21,7 @@ from ..core.history import Entry, HistoryStore
 from .duplicates_tab import DuplicatesTab
 from .faces_tab import FacesTab
 from .photo_tab import PhotoTab
+from .scenes_tab import ScenesTab
 from .search_tab import SearchTab
 from .summary_dialog import SummaryDialog
 
@@ -49,6 +50,7 @@ class MainWindow(ctk.CTk):
         self.tabs.add("Файлы")
         self.tabs.add("Фото")
         self.tabs.add("Лица")
+        self.tabs.add("Сюжеты")
         self.tabs.add("Дубли")
         self.tabs.add("Поиск")
         self.tabs.add("История")
@@ -62,6 +64,11 @@ class MainWindow(ctk.CTk):
         self.faces_tab = FacesTab(
             self.tabs.tab("Лица"), self.config_data, on_batch=self._record_batch)
         self.faces_tab.pack(fill="both", expand=True)
+
+        # Распознавание сюжета: коты, природа, документы, счётчики…
+        self.scenes_tab = ScenesTab(
+            self.tabs.tab("Сюжеты"), self.config_data, on_batch=self._record_batch)
+        self.scenes_tab.pack(fill="both", expand=True)
 
         # Поиск визуальных дублей фотографий
         self.duplicates_tab = DuplicatesTab(self.tabs.tab("Дубли"), self.config_data)
@@ -486,8 +493,8 @@ class MainWindow(ctk.CTk):
         row.pack(fill="x", padx=2, pady=3)
         row.grid_columnconfigure(1, weight=1)
 
-        module_name = {"docs": "Файлы", "photo": "Фото", "faces": "Лица"}.get(
-            batch.module, batch.module)
+        module_name = {"docs": "Файлы", "photo": "Фото", "faces": "Лица",
+                       "scenes": "Сюжеты"}.get(batch.module, batch.module)
         verb = "скопировано" if batch.action == "copy" else "перемещено"
         title = f"{batch.when()}  ·  {module_name}  ·  {verb} {batch.moved_count}"
         ctk.CTkLabel(row, text=title, anchor="w").grid(
